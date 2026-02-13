@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import subprocess, sys, time, os
+
+print("Запуск системы анализа рисков маршрутов...")
+
+# Модуль А → В (последовательно)
+for mod, name in [("main.py", "А"), ("module_v.py", "В")]:
+    print(f"Модуль {name}...", end=" ", flush=True)
+    if subprocess.run([sys.executable, mod]).returncode:
+        print("ОШИБКА")
+        sys.exit(1)
+    print("OK")
+
+# Модуль Б → Г (фон)
+procs = []
+for cmd, name, port in [
+    ([sys.executable, "-m", "streamlit", "run", "main_b.py", "--server.port=8501"], "Б", 8501),
+    ([sys.executable, "module_g.py"], "Г", 8000)
+]:
+    procs.append(subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+    print(f"Модуль {name} запущен → :{port}")
+
+print("\n✅ Все модули запущены")
+print("   Б: http://localhost:8501")
+print("   Г: http://localhost:8000/docs")
+print("\nCtrl+C для остановки...")
+
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    for p in procs:
+        p.terminate()
+    print("\nОстановлено.")
